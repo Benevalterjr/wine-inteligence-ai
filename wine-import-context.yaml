@@ -1,0 +1,209 @@
+dataset:
+  name: wine_imports_brazil
+  description: >
+    Dataset de importação de vinhos, espumantes e champagnes no Brasil.
+    Os dados são derivados de registros aduaneiros (Comex) e contêm ruído textual,
+    exigindo parsing e normalização para análise estratégica.
+  granularity: linha_por_registro_de_importacao
+
+fields:
+  status:
+    type: string
+    description: Status do registro (ex: ok)
+  mes:
+    type: integer
+    range: [1, 12]
+  ano:
+    type: integer
+    example: 2025
+  ncm:
+    type: string
+    description: Código NCM (classificação fiscal)
+    examples:
+      - "22041010" # champagne
+      - "22042100" # vinhos tranquilos
+  pais_origem:
+    type: string
+    description: País produtor do vinho
+  pais_aquisicao:
+    type: string
+    description: País de compra (pode ser diferente da origem)
+  unidade_medida:
+    type: string
+    example: "LITRO"
+  descricao_detalhada:
+    type: string
+    description: >
+      Campo com alta densidade de ruído contendo:
+      - nome do vinho
+      - tipo (BRUT, TINTO, etc.)
+      - embalagem
+      - palavras-chave comerciais
+    parsing_required: true
+  quantidade_estatistica:
+    type: float
+    unit: litros
+  peso_liquido_kg:
+    type: float
+  valor_fob_usd:
+    type: float
+    description: Valor total FOB da operação
+  valor_frete_usd:
+    type: float
+  valor_seguro_usd:
+    type: float
+  valor_unitario_usd:
+    type: float
+    description: Preço médio por unidade comercial
+  quantidade_comercial:
+    type: float
+  valor_total_produto_usd:
+    type: float
+  porto_destino:
+    type: string
+  produto:
+    type: string
+    example: "VINHO" ou "CHAMPAGNE"
+  fabricante_produtor:
+    type: string
+    description: Vinícola ou produtor real
+  importador:
+    type: string
+  distribuidor:
+    type: string
+  marca:
+    type: string
+  rotulo:
+    type: string
+  tipo:
+    type: string
+    examples: ["TINTO", "BRANCO", "ROSE"]
+  sub_tipo:
+    type: string
+    examples: ["BRUT", "SECO", "DEMI-SEC"]
+  safra:
+    type: integer
+    nullable: true
+  garrafas:
+    type: integer
+  tamanho_ml:
+    type: integer
+    description: Volume por garrafa (ex: 750)
+  litros:
+    type: float
+  caixa_9l:
+    type: float
+    description: >
+      Principal unidade de volume padronizada.
+      Representa caixas equivalentes a 9 litros.
+    importance: critical
+  segmentacao:
+    type: string
+    examples:
+      - "POPULAR"
+      - "PREMIUM"
+      - "SUPER PREMIUM"
+      - "ULTRA PREMIUM"
+  transporte:
+    type: string
+    examples: ["MARITIMA", "AEREO"]
+  preco_caixa_9l:
+    type: float
+  unidade_negocio:
+    type: string
+    example: "WINES SPIRITS"
+  regiao_geografica:
+    type: string
+  pais_destino:
+    type: string
+    default: "BRASIL"
+  tipo_canal:
+    type: string
+    example: "IMC"
+  regime_tributario:
+    type: string
+    example: "DUTY PAID"
+  incoterm:
+    type: string
+    examples: ["EXW", "FOB", "CIF", "FCA"]
+
+derived_fields:
+  preco_medio_por_garrafa:
+    formula: valor_total_produto_usd / garrafas
+  preco_por_litro:
+    formula: valor_total_produto_usd / litros
+  preco_por_caixa_9l:
+    formula: valor_total_produto_usd / caixa_9l
+  categoria_produto:
+    logic: |
+      if ncm == "22041010":
+        return "champagne"
+      elif ncm == "22042100":
+        return "vinho"
+      else:
+        return "outros"
+  faixa_preco:
+    logic: |
+      if categoria_produto == "champagne":
+        if preco_por_caixa_9l < 25:
+          return "entry_premium"
+        elif preco_por_caixa_9l < 60:
+          return "premium"
+        elif preco_por_caixa_9l < 140:
+          return "high_end"
+        else:
+          return "luxo"
+      else:
+        if preco_por_caixa_9l < 30:
+          return "popular"
+        elif preco_por_caixa_9l < 80:
+          return "value"
+        elif preco_por_caixa_9l < 150:
+          return "premium"
+        else:
+          return "luxo"
+  estrategia_produto:
+    logic: |
+      if caixa_9l > 100:
+        return "volume_driver"
+      elif caixa_9l < 20 and preco_por_caixa_9l > 100:
+        return "brand_positioning"
+      else:
+        return "margin_product"
+
+parsing_rules:
+  descricao_detalhada:
+    extract:
+      - nome_produto
+      - tipo (BRANCO, TINTO, ROSE)
+      - estilo (BRUT, SECO)
+      - embalagem
+      - palavras-chave (CHAMPAGNE, RESERVE, etc)
+    remove_noise:
+      - termos fiscais
+      - descrições NCM longas
+      - categorias industriais
+    normalize:
+      - uppercase
+      - remover duplicações
+
+business_rules:
+  - Champagne nunca deve ser tratado como produto popular
+  - Volume deve ser analisado prioritariamente via caixa_9l
+  - Preço isolado não define posicionamento
+  - Canal deve ser inferido com base em preço + volume + tipo
+  - Transporte aéreo indica produto de alta margem ou urgência
+
+analysis_guidelines:
+  - Identificar relação entre volume e preço
+  - Detectar produtos de giro vs produtos de branding
+  - Diferenciar produtores industriais vs artesanais
+  - Considerar comportamento do mercado brasileiro
+  - Evitar generalizações baseadas apenas em preço
+
+output_expectation:
+  - tabela estruturada
+  - classificação estratégica
+  - insights de mercado
+  - leitura de portfólio
+  - identificação de padrões ocultos

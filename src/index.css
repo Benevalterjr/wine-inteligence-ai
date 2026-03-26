@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  --color-background: #fdfbf7; /* Soft Cream */
+  --color-foreground: #2d2424; /* Dark Coffee */
+  --color-card: #ffffff;
+  --color-card-foreground: #2d2424;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #2d2424;
+  --color-primary: #8b435c; /* Muted Rose Wine */
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #f3e9e9; /* Soft Pinkish Gray */
+  --color-secondary-foreground: #2d2424;
+  --color-muted: #f5f5f5;
+  --color-muted-foreground: #7c6a6a;
+  --color-accent: #e8d5d5;
+  --color-accent-foreground: #2d2424;
+  --color-destructive: #e57373;
+  --color-destructive-foreground: #ffffff;
+  --color-border: #e8e1da;
+  --color-input: #ffffff;
+  --color-ring: #8b435c;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased selection:bg-primary/20;
+  }
+}
+
+.markdown-body {
+  @apply text-sm leading-relaxed space-y-4 text-muted-foreground;
+}
+.markdown-body h1, .markdown-body h2, .markdown-body h3 {
+  @apply font-bold text-primary mt-6 mb-2;
+}
+.markdown-body ul {
+  @apply list-disc pl-5 space-y-1;
+}
+.markdown-body p {
+  @apply mb-4;
+}
+
+/* Fluid animations */
+.glass-effect {
+  @apply bg-white/70 backdrop-blur-lg border border-white/20 shadow-sm;
+}
